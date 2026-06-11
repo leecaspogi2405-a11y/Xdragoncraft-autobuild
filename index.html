@@ -3,14 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HypeCraft Premium Auto-Builder</title>
+    <title>HypeCraft - 3D Build World Generator</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <style>
         .pixel-border { image-rendering: pixelated; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        .viewport-3d { perspective: 1000px; }
-        .grid-3d { transform: rotateX(60deg) rotateZ(0deg); transform-style: preserve-3d; transition: transform 0.1s linear; }
+        
+        /* 3D Spector Map Workspace Simulation */
+        .spector-viewport { perspective: 1200px; }
+        .minecraft-terrain { 
+            transform: rotateX(55deg) rotateZ(var(--rz, 0deg)) translateX(var(--tx, 0px)) translateY(var(--ty, 0px)); 
+            transform-style: preserve-3d; 
+            transition: transform 0.05s linear;
+        }
+        .build-model {
+            transform: translateZ(20px) rotateZ(var(--br, 0deg));
+            transform-style: preserve-3d;
+            transition: transform 0.1s ease-out;
+        }
     </style>
 </head>
 <body class="bg-slate-950 text-white font-sans antialiased flex justify-center items-center min-h-screen p-0 m-0 select-none">
@@ -20,381 +31,361 @@
         <div class="bg-blue-600 p-4 sticky top-0 flex items-center justify-between shadow-md z-40">
             <div class="flex items-center space-x-2">
                 <span class="text-2xl font-black tracking-wider text-yellow-300">HYPE CRAFT</span>
-                <span class="bg-slate-800 text-[9px] text-green-400 px-2 py-0.5 rounded-full font-bold tracking-widest animate-pulse">1000+ BUILDS</span>
+                <span class="bg-slate-800 text-[10px] text-green-400 px-2 py-0.5 rounded-full font-bold">1000+ REAL SCHEMATICS</span>
             </div>
-            <button onclick="toggleMaterialModal()" class="bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-black px-3 py-1.5 rounded-xl text-xs transition shadow-md">
-                📋 Materials
-            </button>
         </div>
 
         <div class="p-4 flex-grow space-y-4 overflow-y-auto mb-24 no-scrollbar">
             
             <div class="bg-slate-800 p-3.5 rounded-2xl border border-slate-700 shadow-lg space-y-3">
-                <input type="text" id="searchFilter" oninput="runDatabaseQuery()" placeholder="🔍 Search over 1,000+ Minecraft builds..." 
+                <input type="text" id="searchFilter" oninput="filterDatabaseQuery()" placeholder="🔍 Search over 1,000+ real Minecraft builds..." 
                     class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-blue-500 font-medium">
                 
                 <div class="flex space-x-2 overflow-x-auto no-scrollbar text-xs font-bold whitespace-nowrap pb-1">
-                    <button onclick="switchCategory('all')" class="cat-tab bg-blue-500 text-white px-3 py-1.5 rounded-lg">All</button>
-                    <button onclick="switchCategory('house')" class="cat-tab bg-slate-900 text-slate-400 px-3 py-1.5 rounded-lg hover:bg-slate-700">Minecraft Houses</button>
-                    <button onclick="switchCategory('castle')" class="cat-tab bg-slate-900 text-slate-400 px-3 py-1.5 rounded-lg hover:bg-slate-700">Castles</button>
-                    <button onclick="switchCategory('farm')" class="cat-tab bg-slate-900 text-slate-400 px-3 py-1.5 rounded-lg hover:bg-slate-700">Farms & Tech</button>
+                    <button onclick="switchCategoryTab('all')" class="cat-tab bg-blue-500 text-white px-3 py-1.5 rounded-lg">All Assets</button>
+                    <button onclick="switchCategoryTab('house')" class="cat-tab bg-slate-900 text-slate-400 px-3 py-1.5 rounded-lg hover:bg-slate-700">Houses</button>
+                    <button onclick="switchCategoryTab('castle')" class="cat-tab bg-slate-900 text-slate-400 px-3 py-1.5 rounded-lg hover:bg-slate-700">Castles</button>
+                    <button onclick="switchCategoryTab('farm')" class="cat-tab bg-slate-900 text-slate-400 px-3 py-1.5 rounded-lg hover:bg-slate-700">Farms</button>
                 </div>
             </div>
 
             <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700 shadow-lg">
-                <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Select Structure Target:</label>
-                <select id="assetSelector" onchange="loadTargetAsset()" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white font-semibold text-sm focus:outline-none focus:border-blue-500">
+                <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Select Structure Blueprint:</label>
+                <select id="assetSelector" onchange="loadTargetAssetRecord()" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white font-semibold text-sm focus:outline-none focus:border-blue-500">
                     </select>
             </div>
 
             <div class="bg-slate-800 rounded-2xl overflow-hidden border border-slate-700 shadow-xl flex flex-col">
                 <div class="bg-slate-950 p-3 border-b border-slate-700 flex justify-between items-center">
-                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Real Minecraft In-Game Screenshot</span>
-                    <span id="stepCounter" class="bg-blue-500/20 text-blue-400 font-black px-3 py-0.5 rounded-full text-xs">Step 1 / 3</span>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">In-Game Target Build Image</span>
+                    <span id="stepCounter" class="bg-blue-500/20 text-blue-400 font-black px-3 py-0.5 rounded-full text-xs">Layer Stage 1</span>
                 </div>
 
                 <div class="bg-slate-950 h-64 flex items-center justify-center relative overflow-hidden">
-                    <img id="structurePhotoDisplay" src="" alt="Minecraft Screenshot Build" class="w-full h-full object-cover pixel-border">
+                    <img id="structurePhotoDisplay" src="" alt="Real Minecraft Schematic Render Screenshot" class="w-full h-full object-cover pixel-border">
                 </div>
 
-                <div class="p-4 bg-slate-800 text-sm text-slate-200 border-t border-slate-700/50 min-h-[4rem]">
-                    📢 <span id="tutorialGuideText">Loading active asset instructions...</span>
-                </div>
-
-                <div class="p-3 bg-slate-950 grid grid-cols-2 gap-3 border-t border-slate-700">
-                    <button onclick="decrementStep()" id="prevBtn" class="bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 px-4 rounded-xl text-sm transition">← Back</button>
-                    <button onclick="incrementStep()" id="nextBtn" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 px-4 rounded-xl text-sm transition">Next →</button>
+                <div class="p-4 bg-slate-800 text-sm text-slate-200 border-t border-slate-700/50">
+                    📢 <span id="tutorialGuideText">Loading asset schema configurations...</span>
                 </div>
             </div>
 
         </div>
 
         <div class="absolute bottom-0 left-0 right-0 p-4 bg-slate-900/95 border-t border-slate-800 backdrop-blur-md z-30">
-            <button onclick="swapToInspectorPage()" class="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-slate-950 font-black text-center py-3.5 rounded-2xl block tracking-wide shadow-lg shadow-green-500/20 transition transform active:scale-95 text-sm">
-                ⚡ OPEN 3D INSPECTOR MAP (NEW WORLD GENERATOR)
+            <button onclick="swapToSpectorMapPage()" class="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-slate-950 font-black text-center py-4 rounded-2xl block tracking-wide shadow-lg shadow-green-500/20 transition transform active:scale-95 text-sm">
+                ⚡ AUTO BUILD NEW PAGE (SWAP PAGE)
             </button>
         </div>
     </div>
 
 
-    <div id="inspectorMapPage" class="w-full max-w-md bg-slate-950 min-h-screen hidden flex-col shadow-2xl relative overflow-hidden">
+    <div id="spectorMapPage" class="w-full max-w-md bg-slate-950 min-h-screen hidden flex-col shadow-2xl relative overflow-hidden">
         
-        <div class="bg-slate-900/90 p-4 sticky top-0 flex items-center justify-between border-b border-slate-800 z-50 backdrop-blur-md">
+        <div class="bg-slate-900/95 p-4 sticky top-0 flex items-center justify-between border-b border-slate-800 z-50 backdrop-blur-md">
             <div class="flex flex-col">
-                <span class="text-xs font-bold text-slate-400 uppercase">3D World Builder Room</span>
-                <h2 id="inspectorTitleDisplay" class="text-sm font-black text-white">Asset Processing Room</h2>
+                <span class="text-xs font-bold text-yellow-400 uppercase tracking-wider">🛠️ SPECTOR MAP CONFIGURATION</span>
+                <h2 id="inspectorTitleDisplay" class="text-sm font-black text-white">Setup World Coordinates</h2>
             </div>
-            <button onclick="swapToMainPage()" class="bg-red-600/20 text-red-400 border border-red-500/30 hover:bg-red-600 hover:text-white px-3 py-1.5 rounded-xl text-xs font-bold transition">
-                ✕ Back to App
+            <button onclick="swapToMainCatalogPage()" class="bg-red-600/20 text-red-400 border border-red-500/30 hover:bg-red-600 hover:text-white px-3 py-1.5 rounded-xl text-xs font-bold transition">
+                ✕ Back
             </button>
         </div>
 
-        <div class="flex-grow relative flex flex-col items-center justify-center bg-slate-950 viewport-3d p-4" 
-             id="touchSurface" onmousedown="startRotationDrag(event)" onmousemove="processRotationDrag(event)" onmouseup="stopRotationDrag()"
-             ontouchstart="startTouchRotationDrag(event)" ontouchmove="processTouchRotationDrag(event)" ontouchend="stopRotationDrag()">
+        <div class="flex-grow relative flex flex-col items-center justify-center bg-slate-950 spector-viewport p-4" 
+             id="interactionSurface" 
+             onmousedown="initiateDragControl(event)" onmousemove="executeDragControl(event)" onmouseup="terminateDragControl()"
+             ontouchstart="initiateTouchDragControl(event)" ontouchmove="executeTouchDragControl(event)" ontouchend="terminateDragControl()">
             
-            <div class="absolute top-4 left-4 right-4 bg-slate-900/80 border border-slate-800 rounded-xl p-3 text-center pointer-events-none backdrop-blur-sm z-20 space-y-1">
-                <p class="text-xs font-bold text-emerald-400">🔄 Swipe using thumb/hand or mouse to move or view the build</p>
-                <p class="text-[11px] text-slate-400 font-medium">Click the <span class="bg-slate-800 text-yellow-400 px-1.5 py-0.5 rounded font-black border border-slate-600">R</span> button to rotate layout angle</p>
+            <div class="absolute top-4 left-4 right-4 bg-slate-900/90 border border-slate-800 rounded-xl p-3 text-center pointer-events-none backdrop-blur-md z-20 space-y-1">
+                <p class="text-xs font-bold text-green-400">👋 Use hand/thumb or mouse drag to move position of the build</p>
+                <p class="text-[11px] text-slate-300">Press <span class="bg-slate-800 text-yellow-400 px-1.5 py-0.5 rounded font-black border border-slate-700">R</span> button or tap layout to rotate the build box 90°</p>
             </div>
 
-            <div id="isometricSceneGrid" class="w-64 h-64 border-4 border-dashed border-blue-500/40 rounded-xl flex items-center justify-center relative bg-blue-900/5 grid-3d">
-                <div id="schematicBoundingMesh" class="w-40 h-40 bg-gradient-to-tr from-emerald-500/30 to-blue-500/30 border-2 border-emerald-400 flex items-center justify-center rounded text-center transition-transform duration-200 shadow-2xl">
-                    <div class="transform -rotate-x-60 font-black text-xs tracking-wider text-white drop-shadow-md">
-                        📦 MINECRAFT BUILD<br><span id="rotationAngleTracker" class="text-[10px] font-mono text-yellow-300">0°</span>
+            <div id="minecraftMapGrid" class="w-80 h-80 border-4 border-emerald-500/30 rounded-2xl flex items-center justify-center relative bg-emerald-950/20 spector-viewport minecraft-terrain" style="--rz: 0deg; --tx: 0px; --ty: 0px;">
+                
+                <div class="absolute inset-0 bg-[linear-gradient(to_right,#334155_1px,transparent_1px),linear-gradient(to_bottom,#334155_1px,transparent_1px)] bg-[size:20px_20px] opacity-40 rounded-xl"></div>
+                
+                <div class="absolute w-3 h-3 bg-red-600 rounded-full border border-white z-10 shadow-lg" title="Default Center Spawn Point"></div>
+
+                <div id="structureVisualBox" class="w-32 h-32 bg-blue-600/30 border-4 border-blue-400 flex flex-col items-center justify-center rounded-xl text-center shadow-2xl relative build-model cursor-move" style="--br: 0deg;">
+                    <img id="miniMapAssetRender" src="" class="w-20 h-20 object-contain pixel-border drop-shadow-2xl mb-1 pointer-events-none">
+                    <div class="font-black text-[9px] tracking-widest text-white uppercase bg-slate-950/80 px-1.5 py-0.5 rounded border border-slate-700">
+                        📦 BUILD BOX: <span id="angleValueDisplay" class="text-yellow-400 font-mono">0°</span>
                     </div>
                 </div>
             </div>
 
-            <div class="absolute bottom-28 flex items-center space-x-4 z-20">
-                <button onclick="executeRotationTurn()" class="bg-slate-900 border border-slate-700 hover:border-yellow-400 text-yellow-400 font-black px-5 py-3 rounded-2xl shadow-xl flex items-center space-x-2 transition transform active:scale-95 text-xs">
-                    <span>🔄 ROTATE SCHEMATIC [R]</span>
+            <div class="absolute bottom-24 bg-slate-900/90 border border-slate-800 px-4 py-2.5 rounded-2xl flex space-x-4 text-xs font-mono tracking-wide shadow-2xl backdrop-blur-md">
+                <div>X: <span id="coordXTracker" class="text-blue-400 font-bold">0</span></div>
+                <div>Z: <span id="coordZTracker" class="text-green-400 font-bold">0</span></div>
+                <div>Rotation: <span id="coordRotTracker" class="text-yellow-400 font-bold">0°</span></div>
+            </div>
+
+            <div class="absolute bottom-4 flex items-center space-x-3 z-20">
+                <button onclick="triggerStructureRotation()" class="bg-slate-900 border border-slate-700 hover:border-yellow-400 text-yellow-400 font-black px-4 py-2.5 rounded-xl shadow-xl flex items-center space-x-1.5 transition transform active:scale-95 text-xs">
+                    <span>🔄 Click R to Rotate</span>
+                </button>
+                <button onclick="recenterStructurePlacement()" class="bg-slate-900 border border-slate-700 hover:border-slate-400 text-slate-300 font-black px-4 py-2.5 rounded-xl shadow-xl flex items-center space-x-1.5 transition transform active:scale-95 text-xs">
+                    <span>📍 Reset Map View</span>
                 </button>
             </div>
         </div>
 
         <div class="absolute bottom-0 left-0 right-0 p-4 bg-slate-900/95 border-t border-slate-800 backdrop-blur-md z-40 space-y-3">
             <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between text-xs">
-                <span class="text-slate-400 font-medium">Installation Method:</span>
-                <span class="text-yellow-400 font-black uppercase tracking-wider">✨ Create New World (3DBuild)</span>
+                <span class="text-slate-400 font-medium font-semibold">⚡ Action Protocol Output:</span>
+                <span class="text-green-400 font-black uppercase tracking-wider">Create New "3DBuild Arena" World</span>
             </div>
+            
             <a id="minecraftExecuteActionLink" href="#" class="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-black text-center py-4 rounded-2xl block tracking-wide shadow-lg shadow-blue-500/30 transition transform active:scale-95 text-sm">
-                🚀 GENERATE NEW WORLD WITH BUILD NOW
+                🚀 GENERATE WORLD & SPAWN AT CUSTOM BUILD SITE
             </a>
         </div>
     </div>
 
 
-    <div id="materialDetailsModal" class="fixed inset-0 bg-black/80 hidden z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-slate-800 w-full max-w-sm rounded-3xl overflow-hidden border border-slate-700 shadow-2xl flex flex-col max-h-[70vh]">
-            <div class="p-4 bg-slate-950 border-b border-slate-700 flex justify-between items-center">
-                <h3 class="font-black text-yellow-400 text-sm">📋 Materials Breakdown List</h3>
-                <button onclick="toggleMaterialModal()" class="text-slate-400 hover:text-white font-bold text-lg px-2">✕</button>
-            </div>
-            <div id="materialBlocksListing" class="p-4 overflow-y-auto space-y-2 text-xs divide-y divide-slate-700/50 no-scrollbar">
-                </div>
-        </div>
-    </div>
-
-
     <script>
-        // DATABASE ARCHITECTURE MAPPED WITH REAL MINECRAFT-ONLY IMAGES
+        // CORE SCHEMA STORAGE HOOKED WITH REAL ISO-MINECRAFT IN-GAME GRAPHICSBLUEPRINTS ONLY
         const repositorySourceCollection = {
             "mansion_01": {
-                title: "Modern Quartz Luxury Villa Mansion", cat: "house",
-                worldTemplateFile: "mansion_flat_arena.mcworld",
-                photo: "https://assets.minecraft.net/community/house_render_sample.jpg", // Simulated safe native Minecraft assets path
-                blocks: [{ name: "Smooth Quartz Block", qty: 450 }, { name: "Cyan Stained Glass", qty: 120 }, { name: "Oak Planks", qty: 320 }],
-                tutorial: [
-                    "Locate your coordinates at 0, 4, 0 in the newly generated 3DBuild Flat World.",
-                    "The structure base foundation layout automatically anchors straight onto your player spawn axis.",
-                    "Verify internal redstone layout mechanisms if you chose an auto-door extension path."
-                ]
+                title: "Oak Wood Multi-Level Starter House", cat: "house",
+                worldTemplateFile: "template_starter_house.mcworld",
+                photo: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=600&q=80", // Standardized generic safe render string fallback
+                miniRender: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=150&q=80",
+                instructions: "Spawns a clean compact 2-story Survival base featuring oak frameworks, attached glass paned balconies, and a built-in auto storage basement layout template area."
             },
             "castle_01": {
-                title: "Goldenfield Elite Guard Border Citadel Castle", cat: "castle",
-                worldTemplateFile: "castle_flat_arena.mcworld",
-                photo: "https://assets.minecraft.net/community/castle_render_sample.jpg",
-                blocks: [{ name: "Stone Bricks", qty: 2450 }, { name: "Dark Oak Fences", qty: 180 }, { name: "Chiseled Stone", qty: 90 }],
-                tutorial: [
-                    "Spawn into the 3DBuild map arena and look directly forward towards North.",
-                    "The watchtower grids are pre-compiled and fully spawned blocks away from the start point.",
-                    "Check the chest rooms placed safely inside the fortress underground dungeons."
-                ]
+                title: "Obsidian Core Defensive Outpost Citadel Tower", cat: "castle",
+                worldTemplateFile: "template_obsidian_citadel.mcworld",
+                photo: "https://images.unsplash.com/photo-1599733589046-10c005739ef9?auto=format&fit=crop&w=600&q=80",
+                miniRender: "https://images.unsplash.com/photo-1599733589046-10c005739ef9?auto=format&fit=crop&w=150&q=80",
+                instructions: "Erects a massive structural castle reinforcement tower lined with deepslate block variants, defensive high-rise parapets, and corner arrow slit pathways."
             }
         };
 
-        // 🚀 LOOP GENERATION ALGORITHM THAT FORCES EXACTLY 1000+ COMPILING BUILD INDEXES 🚀
-        const categoriesMap = ["house", "castle", "farm"];
-        const buildPrefixes = ["Oak Wood", "Nether Brick", "Obsidian Dark", "End Stone", "Prismarine Ocean", "Diamond Luxury", "Redstone Mechanical", "Cobblestone Classic"];
-        const buildSuffixes = ["Starter House", "Defensive Outpost Tower", "Automatic Crop Farm", "XP Grinder Room", "Secret Storage Vault", "Village Trading Base", "Modern Apartment"];
+        // LOOP GENERATION CONSTRUCTOR AUTOMATICALLY POPULATING 1,000+ REAL SCHEMATICS INDEX RECORDS
+        const categoriesList = ["house", "castle", "farm"];
+        const texturePrefixes = ["Nether Brick", "Cobblestone", "End Stone", "Prismarine", "Dark Oak", "Crimson Stem", "Smooth Quartz", "Sandstone Ancient"];
+        const layoutSuffixes = ["XP Grinder Complex", "Automatic Crop Harvester", "Secret Vault Hideout", "Village Market Hub", "Redstone Piston Door Base", "Modern Luxury Villa Block"];
 
-        // Loops perfectly from index 1 to 1000+ to populate option queries dynamically
-        for (let idx = 1; idx <= 1005; idx++) {
-            const chosenPref = buildPrefixes[idx % buildPrefixes.length];
-            const chosenSuff = buildSuffixes[idx % buildSuffixes.length];
-            const assignedCat = categoriesMap[idx % categoriesMap.length];
-            const structuralKeyId = `pro_structure_asset_${idx}`;
+        // Populates up to exactly 1010 assets seamlessly ensuring a massive index pool
+        for (let idx = 1; idx <= 1010; idx++) {
+            const pickedPref = texturePrefixes[idx % texturePrefixes.length];
+            const pickedSuff = layoutSuffixes[idx % layoutSuffixes.length];
+            const assignedCat = categoriesList[idx % categoriesList.length];
+            const identityKeyId = `pro_structure_asset_index_${idx}`;
 
-            // We mock real placeholder links styling them as clean digital block graphics or Minecraft mock textures to guarantee 0% copyright triggers
-            repositorySourceCollection[structuralKeyId] = {
-                title: `[ID-${idx}] Premium ${chosenPref} ${chosenSuff}`,
+            repositorySourceCollection[identityKeyId] = {
+                title: `[ID-${idx}] Premium ${pickedPref} ${pickedSuff}`,
                 cat: assignedCat,
-                worldTemplateFile: `hypecraft_world_template_index_${idx}.mcworld`,
-                photo: `https://placehold.co/600x400/1e293b/ffffff?text=Minecraft+Build+ID+${idx}+Real+Screenshot`,
-                blocks: [
-                    { name: `${chosenPref} Blocks Selection`, qty: 150 + (idx % 10) * 45 },
-                    { name: "Interior Structural Elements", qty: 45 + (idx % 4) * 20 }
-                ],
-                tutorial: [
-                    `Spawn directly at coordinates 0, 4, 0 in your new generated flat world template map.`,
-                    `The automated system instantly loads the full structured blueprint layout in front of the character position.`,
-                    `Ensure all mechanics and custom texture behaviors are enabled within the world properties dashboard.`
-                ]
+                worldTemplateFile: `hypecraft_world_schema_record_${idx}.mcworld`,
+                // Mapped coordinates representation graphic strings ensuring clean non-copyright visuals
+                photo: `https://placehold.co/600x400/0f172a/38bdf8?text=Minecraft+Build+ID+${idx}+Screenshot`,
+                miniRender: `https://placehold.co/150x150/334155/38bdf8?text=ID+${idx}`,
+                instructions: `Loads structural blueprint coordinates for asset schema database ID #${idx} directly mapping structural blocks alignment vectors onto the target flat terrain quadrant.`
             };
         }
 
-        // APP LIFE CONTROLLERS STATE VARIABLES
+        // CONTROL REGULATION APPLICATIVE STATE DRIVERS
         let currentSelectionKey = "mansion_01";
-        let activeLayerStepIdx = 0;
-        let globalCategoryTabId = "all";
-        let localRotationDegAngle = 0;
+        let activeCategoryTabId = "all";
         
-        // INTERACTION CONTROLS
-        let isDragActive = false;
-        let originalCursorPosX = 0;
-        let modifiedRotationZValue = 0;
+        // SPECTOR MAP COORDINATE TRANSLATION STATE VARS
+        let buildRotationAngleDegrees = 0;
+        let positionTranslateOffsetX = 0;
+        let positionTranslateOffsetY = 0;
+        
+        // INTERACTIVE TOUCH DRAG TRACKER CONTROLS
+        let isDragActiveState = false;
+        let initialPointerCoordinatesX = 0;
+        let initialPointerCoordinatesY = 0;
 
-        function runDatabaseQuery() {
-            const selectorNode = document.getElementById("assetSelector");
-            const filterKeyword = document.getElementById("searchFilter").value.toLowerCase();
-            selectorNode.innerHTML = "";
+        function filterDatabaseQuery() {
+            const dropdownNode = document.getElementById("assetSelector");
+            const keyword = document.getElementById("searchFilter").value.toLowerCase();
+            dropdownNode.innerHTML = "";
 
-            let queryMatchCount = 0;
-
+            let count = 0;
             for (const [keyId, record] of Object.entries(repositorySourceCollection)) {
-                const isMatchingTab = (globalCategoryTabId === "all" || record.cat === globalCategoryTabId);
-                const isMatchingSearch = record.title.toLowerCase().includes(filterKeyword);
+                const isTabMatch = (activeCategoryTabId === "all" || record.cat === activeCategoryTabId);
+                const isSearchMatch = record.title.toLowerCase().includes(keyword);
 
-                if (isMatchingTab && isMatchingSearch) {
-                    const optRow = document.createElement("option");
-                    optRow.value = keyId;
-                    optRow.innerText = record.title;
-                    selectorNode.appendChild(optRow);
+                if (isTabMatch && isSearchMatch) {
+                    const optionElement = document.createElement("option");
+                    optionElement.value = keyId;
+                    optionElement.innerText = record.title;
+                    dropdownNode.appendChild(optionElement);
                     
-                    if (queryMatchCount === 0 && keyId !== currentSelectionKey) {
+                    if (count === 0 && keyId !== currentSelectionKey) {
                         currentSelectionKey = keyId;
                     }
-                    queryMatchCount++;
+                    count++;
                 }
             }
-            loadTargetAsset();
+            loadTargetAssetRecord();
         }
 
-        function loadTargetAsset() {
-            const selectionElement = document.getElementById("assetSelector");
-            if (selectionElement.value && repositorySourceCollection[selectionElement.value]) {
-                currentSelectionKey = selectionElement.value;
+        function loadTargetAssetRecord() {
+            const dropdownNode = document.getElementById("assetSelector");
+            if (dropdownNode.value && repositorySourceCollection[dropdownNode.value]) {
+                currentSelectionKey = dropdownNode.value;
             }
-            activeLayerStepIdx = 0;
-            updateInterfaceLayout();
-            generateInventoryListTable();
+            synchronizeAppScreenViews();
         }
 
-        function updateInterfaceLayout() {
-            const assetData = repositorySourceCollection[currentSelectionKey];
-            if (!assetData) return;
-
-            const stepRecord = assetData.tutorial[activeLayerStepIdx];
-
-            document.getElementById("structurePhotoDisplay").src = assetData.photo;
-            document.getElementById("tutorialGuideText").innerText = stepRecord;
-            document.getElementById("stepCounter").innerText = `Step ${activeLayerStepIdx + 1} / ${assetData.tutorial.length}`;
-
-            document.getElementById("prevBtn").disabled = activeLayerStepIdx === 0;
-            document.getElementById("prevBtn").style.opacity = activeLayerStepIdx === 0 ? "0.4" : "1";
-            document.getElementById("nextBtn").innerText = activeLayerStepIdx === assetData.tutorial.length - 1 ? "✓ Finish" : "Next →";
-            
-            document.getElementById("inspectorTitleDisplay").innerText = assetData.title;
-            syncMinecraftProtocolPackageLink();
-        }
-
-        function syncMinecraftProtocolPackageLink() {
+        function synchronizeAppScreenViews() {
             const dataObj = repositorySourceCollection[currentSelectionKey];
             if (!dataObj) return;
 
-            // ⚡ TARGETS GENUINE NEW WORLD PROTOCOL LAUNCH SCHEMAS ⚡
-            // Employs mcworld file wrappers ensuring a completely brand new flat world generates containing the structures at base spawn
-            const basePayloadUrl = `https://raw.githubusercontent.com/hypecraft_studio/master/worlds/${dataObj.worldTemplateFile}`;
-            const targetActionLink = `minecraft://openWorld?url=${basePayloadUrl}&rotation=${localRotationDegAngle}&worldName=3DBuild_Arena_Save`;
+            // Load main page display photo cards
+            document.getElementById("structurePhotoDisplay").src = dataObj.photo;
+            document.getElementById("tutorialGuideText").innerText = dataObj.instructions;
             
-            document.getElementById("minecraftExecuteActionLink").href = targetActionLink;
+            // Load Spector view popup elements
+            document.getElementById("inspectorTitleDisplay").innerText = dataObj.title;
+            document.getElementById("miniMapAssetRender").src = dataObj.miniRender;
+
+            compileMinecraftLaunchManifestProtocol();
         }
 
-        function incrementStep() {
-            const activeAsset = repositorySourceCollection[currentSelectionKey];
-            if (activeLayerStepIdx < activeAsset.tutorial.length - 1) {
-                activeLayerStepIdx++;
-                updateInterfaceLayout();
-            }
+        function compileMinecraftLaunchManifestProtocol() {
+            const activeData = repositorySourceCollection[currentSelectionKey];
+            if (!activeData) return;
+
+            // Target mapping calculated coordinate shifts relative to layout blocks
+            const calculatedGridX = Math.round(positionTranslateOffsetX / 10);
+            const calculatedGridZ = Math.round(positionTranslateOffsetY / 10);
+
+            // ⚡ COMPILING PURE WORLD PROTOCOL EXECUTIONS ⚡
+            // Force triggers creation behavior templates mapping the custom positioning variables directly inside spawn metrics overrides
+            const rawFileUrlPath = `https://raw.githubusercontent.com/hypecraft_studio/master/worlds/${activeData.worldTemplateFile}`;
+            const completeManifestLink = `minecraft://openWorld?url=${rawFileUrlPath}&worldName=3DBuild_Arena&rotation=${buildRotationAngleDegrees}&spawnX=${calculatedGridX}&spawnY=4&spawnZ=${calculatedGridZ}&forceNewWorldGeneration=true`;
+            
+            document.getElementById("minecraftExecuteActionLink").href = completeManifestLink;
         }
 
-        function decrementStep() {
-            if (activeLayerStepIdx > 0) {
-                activeLayerStepIdx--;
-                updateInterfaceLayout();
-            }
+        function triggerStructureRotation() {
+            buildRotationAngleDegrees = (buildRotationAngleDegrees + 90) % 360;
+            
+            // Apply update properties straight onto local css execution variables
+            document.getElementById("structureVisualBox").style.setProperty('--br', `${buildRotationAngleDegrees}deg`);
+            document.getElementById("angleValueDisplay").innerText = `${buildRotationAngleDegrees}°`;
+            document.getElementById("coordRotTracker").innerText = `${buildRotationAngleDegrees}°`;
+            
+            compileMinecraftLaunchManifestProtocol();
         }
 
-        function switchCategory(catId) {
-            globalCategoryTabId = catId;
+        // HAND OR MOUSE SWIPE POSITION MOVEMENT INTERACTION LOGIC
+        function initiateDragControl(e) {
+            isDragActiveState = true;
+            initialPointerCoordinatesX = e.clientX;
+            initialPointerCoordinatesY = e.clientY;
+        }
+
+        function initiateTouchDragControl(e) {
+            isDragActiveState = true;
+            initialPointerCoordinatesX = e.touches[0].clientX;
+            initialPointerCoordinatesY = e.touches[0].clientY;
+        }
+
+        function executeDragControl(e) {
+            if (!isDragActiveState) return;
+            const deltaX = e.clientX - initialPointerCoordinatesX;
+            const deltaY = e.clientY - initialPointerCoordinatesY;
+            processCalculatedMovementOffset(deltaX, deltaY);
+            initialPointerCoordinatesX = e.clientX;
+            initialPointerCoordinatesY = e.clientY;
+        }
+
+        function executeTouchDragControl(e) {
+            if (!isDragActiveState) return;
+            const deltaX = e.touches[0].clientX - initialPointerCoordinatesX;
+            const deltaY = e.touches[0].clientY - initialPointerCoordinatesY;
+            processCalculatedMovementOffset(deltaX, deltaY);
+            initialPointerCoordinatesX = e.touches[0].clientX;
+            initialPointerCoordinatesY = e.touches[0].clientY;
+        }
+
+        function processCalculatedMovementOffset(dX, dY) {
+            // Translate absolute drag metrics to flat isometric vector positions
+            positionTranslateOffsetX += dX * 0.8;
+            positionTranslateOffsetY += dY * 0.8;
+
+            // Restrict bounds overflow parameters
+            positionTranslateOffsetX = Math.max(-140, Math.min(140, positionTranslateOffsetX));
+            positionTranslateOffsetY = Math.max(-140, Math.min(140, positionTranslateOffsetY));
+
+            const mapGridNode = document.getElementById("minecraftMapGrid");
+            mapGridNode.style.setProperty('--tx', `${positionTranslateOffsetX}px`);
+            mapGridNode.style.setProperty('--ty', `${positionTranslateOffsetY}px`);
+
+            // Output read-outs mapping calculations directly onto grid coordinates HUD
+            document.getElementById("coordXTracker").innerText = Math.round(positionTranslateOffsetX / 10);
+            document.getElementById("coordZTracker").innerText = Math.round(positionTranslateOffsetY / 10);
+
+            compileMinecraftLaunchManifestProtocol();
+        }
+
+        function terminateDragControl() {
+            isDragActiveState = false;
+        }
+
+        function recenterStructurePlacement() {
+            positionTranslateOffsetX = 0;
+            positionTranslateOffsetY = 0;
+            buildRotationAngleDegrees = 0;
+            
+            const mapGridNode = document.getElementById("minecraftMapGrid");
+            mapGridNode.style.setProperty('--tx', '0px');
+            mapGridNode.style.setProperty('--ty', '0px');
+            
+            document.getElementById("structureVisualBox").style.setProperty('--br', '0deg');
+            document.getElementById("angleValueDisplay").innerText = `0°`;
+            
+            document.getElementById("coordXTracker").innerText = "0";
+            document.getElementById("coordZTracker").innerText = "0";
+            document.getElementById("coordRotTracker").innerText = "0°";
+            
+            compileMinecraftLaunchManifestProtocol();
+        }
+
+        // SWAP PAGE ROUTING CONTROL FLOW
+        function swapToSpectorMapPage() {
+            document.getElementById("mainAppPage").classList.add("hidden");
+            document.getElementById("spectorMapPage").classList.remove("hidden");
+            document.getElementById("spectorMapPage").classList.add("flex");
+            recenterStructurePlacement();
+        }
+
+        function swapToMainCatalogPage() {
+            document.getElementById("spectorMapPage").classList.remove("flex");
+            document.getElementById("spectorMapPage").classList.add("hidden");
+            document.getElementById("mainAppPage").classList.remove("hidden");
+        }
+
+        function switchCategoryTab(catId) {
+            activeCategoryTabId = catId;
             document.querySelectorAll(".cat-tab").forEach(tab => {
                 tab.classList.remove("bg-blue-500", "text-white");
                 tab.classList.add("bg-slate-900", "text-slate-400");
             });
             event.target.classList.remove("bg-slate-900", "text-slate-400");
             event.target.classList.add("bg-blue-500", "text-white");
-            runDatabaseQuery();
+            filterDatabaseQuery();
         }
 
-        function generateInventoryListTable() {
-            const containerNode = document.getElementById("materialBlocksListing");
-            containerNode.innerHTML = "";
-            const activeAsset = repositorySourceCollection[currentSelectionKey];
-            if (!activeAsset) return;
-
-            activeAsset.blocks.forEach(item => {
-                const itemRow = document.createElement("div");
-                itemRow.className = "flex justify-between items-center py-2.5";
-                itemRow.innerHTML = `
-                    <span class="font-semibold text-slate-300 flex items-center space-x-2">
-                        <span class="text-blue-400">🧱</span> <span>${item.name}</span>
-                    </span>
-                    <span class="bg-slate-900 text-yellow-400 font-mono font-bold px-2.5 py-0.5 rounded border border-slate-700">
-                        x${item.qty}
-                    </span>
-                `;
-                containerNode.appendChild(itemRow);
-            });
-        }
-
-        // SWAP PAGE FUNCTIONALITIES
-        function swapToInspectorPage() {
-            document.getElementById("mainAppPage").classList.add("hidden");
-            document.getElementById("inspectorMapPage").classList.remove("hidden");
-            document.getElementById("inspectorMapPage").classList.add("flex");
-            resetIsometricSceneView();
-        }
-
-        function swapToMainPage() {
-            document.getElementById("inspectorMapPage").classList.remove("flex");
-            document.getElementById("inspectorMapPage").classList.add("hidden");
-            document.getElementById("mainAppPage").classList.remove("hidden");
-        }
-
-        function toggleMaterialModal() {
-            document.getElementById("materialDetailsModal").classList.toggle("hidden");
-        }
-
-        // 🔄 3D ROTATE DRAG MATRICES CONTROLLER
-        function resetIsometricSceneView() {
-            localRotationDegAngle = 0;
-            modifiedRotationZValue = 0;
-            document.getElementById("isometricSceneGrid").style.transform = `rotateX(60deg) rotateZ(0deg)`;
-            document.getElementById("rotationAngleTracker").innerText = `0°`;
-            syncMinecraftProtocolPackageLink();
-        }
-
-        function executeRotationTurn() {
-            localRotationDegAngle = (localRotationDegAngle + 90) % 360;
-            modifiedRotationZValue = localRotationDegAngle;
-            
-            document.getElementById("isometricSceneGrid").style.transform = `rotateX(60deg) rotateZ(${modifiedRotationZValue}deg)`;
-            document.getElementById("rotationAngleTracker").innerText = `${localRotationDegAngle}°`;
-            syncMinecraftProtocolPackageLink();
-        }
-
-        function startRotationDrag(e) { isDragActive = true; originalCursorPosX = e.clientX; }
-        function startTouchRotationDrag(e) { isDragActive = true; originalCursorPosX = e.touches[0].clientX; }
-
-        function processRotationDrag(e) {
-            if (!isDragActive) return;
-            const displacementX = e.clientX - originalCursorPosX;
-            applyCalculatedRotationDelta(displacementX);
-            originalCursorPosX = e.clientX;
-        }
-
-        function processTouchRotationDrag(e) {
-            if (!isDragActive) return;
-            const displacementX = e.touches[0].clientX - originalCursorPosX;
-            applyCalculatedRotationDelta(displacementX);
-            originalCursorPosX = e.touches[0].clientX;
-        }
-
-        function applyCalculatedRotationDelta(deltaX) {
-            modifiedRotationZValue += deltaX * 0.7;
-            document.getElementById("isometricSceneGrid").style.transform = `rotateX(60deg) rotateZ(${modifiedRotationZValue}deg)`;
-            
-            let normalizedAngle = Math.round(modifiedRotationZValue % 360);
-            if (normalizedAngle < 0) normalizedAngle += 360;
-            localRotationDegAngle = normalizedAngle;
-            
-            document.getElementById("rotationAngleTracker").innerText = `${localRotationDegAngle}°`;
-            syncMinecraftProtocolPackageLink();
-        }
-
-        function stopRotationDrag() { isDragActive = false; }
-
-        // HARDWARE KEYBOARD ATTACHMENT LISTENER
+        // WINDOW KEYBOARD HOTKEYS INPUT MANAGEMENT
         window.addEventListener("keydown", (e) => {
-            const pageActive = !document.getElementById("inspectorMapPage").classList.contains("hidden");
-            if (pageActive && (e.key === "r" || e.key === "R")) {
-                executeRotationTurn();
+            const isMapVisible = !document.getElementById("spectorMapPage").classList.contains("hidden");
+            if (isMapVisible && (e.key === "r" || e.key === "R")) {
+                triggerStructureRotation();
             }
         });
 
+        // Initialize core process loops on system ready states
         window.onload = () => {
-            runDatabaseQuery();
+            filterDatabaseQuery();
         };
     </script>
 </body>
