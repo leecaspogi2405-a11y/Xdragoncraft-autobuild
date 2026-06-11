@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HypeCraft Premium Auto-Builder & Guide</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        .pixel-border { image-rendering: pixelated; }
+        /* Smooth scrolling for mobile */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-slate-950 text-white font-sans antialiased flex justify-center items-center min-h-screen p-0 m-0">
+
+    <div class="w-full max-w-md bg-slate-900 min-h-screen flex flex-col shadow-2xl relative overflow-hidden">
+        
+        <div class="bg-blue-600 p-4 sticky top-0 flex items-center justify-between shadow-md z-50">
+            <div class="flex items-center space-x-2">
+                <span class="text-2xl font-black tracking-wider text-yellow-300">HYPE CRAFT</span>
+                <span class="bg-slate-800 text-[9px] text-green-400 px-2 py-0.5 rounded-full font-bold tracking-widest animate-pulse">1000+ BUILDS</span>
+            </div>
+            <button onclick="toggleMaterialList()" class="bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-black px-3 py-1.5 rounded-xl text-xs transition shadow-md">
+                📋 Materials
+            </button>
+        </div>
+
+        <div class="p-4 flex-grow space-y-4 overflow-y-auto mb-24 no-scrollbar">
+            
+            <div class="bg-slate-800 p-3.5 rounded-2xl border border-slate-700 shadow-lg space-y-3">
+                <div>
+                    <input type="text" id="searchBar" oninput="filterBuilds()" placeholder="🔍 Search 1,000+ builds (e.g., Mansion, Farm)..." 
+                        class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-blue-500 font-medium">
+                </div>
+                
+                <div class="flex space-x-2 overflow-x-auto no-scrollbar text-xs font-bold whitespace-nowrap pb-1">
+                    <button onclick="filterCategory('all')" class="cat-btn bg-blue-500 text-white px-3 py-1.5 rounded-lg">All</button>
+                    <button onclick="filterCategory('house')" class="cat-btn bg-slate-900 text-slate-400 px-3 py-1.5 rounded-lg hover:bg-slate-700">Houses</button>
+                    <button onclick="filterCategory('castle')" class="cat-btn bg-slate-900 text-slate-400 px-3 py-1.5 rounded-lg hover:bg-slate-700">Castles</button>
+                    <button onclick="filterCategory('farm')" class="cat-btn bg-slate-900 text-slate-400 px-3 py-1.5 rounded-lg hover:bg-slate-700">Farms</button>
+                    <button onclick="filterCategory('redstone')" class="cat-btn bg-slate-900 text-slate-400 px-3 py-1.5 rounded-lg hover:bg-slate-700">Redstone</button>
+                    <button onclick="filterCategory('pixel')" class="cat-btn bg-slate-900 text-slate-400 px-3 py-1.5 rounded-lg hover:bg-slate-700">Pixel Art</button>
+                </div>
+            </div>
+
+            <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700 shadow-lg">
+                <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Select Structure:</label>
+                <select id="buildSelector" onchange="loadBuild()" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white font-semibold text-sm focus:outline-none focus:border-blue-500">
+                    </select>
+            </div>
+
+            <div class="bg-slate-800 rounded-2xl overflow-hidden border border-slate-700 shadow-xl flex flex-col">
+                <div class="bg-slate-950 p-3 border-b border-slate-700 flex justify-between items-center">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Build Blueprint Layer Guide</span>
+                    <span id="stepIndicator" class="bg-blue-500/20 text-blue-400 font-black px-3 py-0.5 rounded-full text-xs">
+                        Step 1 / 3
+                    </span>
+                </div>
+
+                <div class="bg-slate-950 h-64 flex items-center justify-center p-4 relative overflow-hidden">
+                    <img id="buildImage" src="" alt="Minecraft Step Guide Layout" class="max-h-full rounded-xl object-contain shadow-md pixel-border">
+                </div>
+
+                <div class="p-4 bg-slate-800 text-sm text-slate-200 border-t border-slate-700/50 min-h-[4rem]">
+                    💡 <span id="stepInstruction">Loading step instruction instructions...</span>
+                </div>
+
+                <div class="p-3 bg-slate-950 grid grid-cols-2 gap-3 border-t border-slate-700">
+                    <button onclick="prevStep()" id="btnBack" class="bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 px-4 rounded-xl text-sm transition">
+                        ← Back
+                    </button>
+                    <button onclick="nextStep()" id="btnNext" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 px-4 rounded-xl text-sm transition">
+                        Next →
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="absolute bottom-0 left-0 right-0 p-4 bg-slate-900/95 border-t border-slate-800 backdrop-blur-md z-40">
+            <a id="autoBuildLink" href="#" class="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-slate-950 font-black text-center py-3.5 rounded-2xl block tracking-wide shadow-lg shadow-green-500/20 transition transform active:scale-95 text-sm">
+                🤖 INSTALL DIRECT TO MINECRAFT (AUTO-BUILD)
+            </a>
+        </div>
+
+    </div>
+
+    <div id="materialModal" class="fixed inset-0 bg-black/80 hidden z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-slate-800 w-full max-w-sm rounded-3xl overflow-hidden border border-slate-700 shadow-2xl flex flex-col max-h-[70vh]">
+            <div class="p-4 bg-slate-950 border-b border-slate-700 flex justify-between items-center">
+                <h3 class="font-black text-yellow-400">📋 Total Materials Required</h3>
+                <button onclick="toggleMaterialList()" class="text-slate-400 hover:text-white font-bold text-lg px-2">✕</button>
+            </div>
+            <div id="materialContainer" class="p-4 overflow-y-auto space-y-2 text-xs divide-y divide-slate-700/50 no-scrollbar">
+                </div>
+        </div>
+    </div>
+
+    <script>
+        // 🚀 SCALABLE SYSTEM DATABASE FRAMEWORK (Pre-configured structure for 1,000+ builds mapping)
+        const buildDatabase = {
+            "sakura_portal": {
+                name: "🌸 Sakura Nether Portal Gate", category: "house",
+                packUrl: "https://raw.githubusercontent.com/iyong_username/iyong_repo/main/packs/sakura_portal.mcpack",
+                materials: [{ name: "Obsidian", count: 36 }, { name: "Crying Obsidian", count: 12 }, { name: "Cherry Leaves", count: 64 }],
+                steps: [
+                    { img: "https://placehold.co/400x400/800080/FFF?text=Sakura+Portal+Layer+1", text: "Place a 4x5 vertical block layout frame outline using Obsidian on flat ground." },
+                    { img: "https://placehold.co/400x400/4b0082/FFF?text=Sakura+Portal+Layer+2", text: "Replace the 4 base corners using Crying Obsidian blocks for dimensional particle glow." },
+                    { img: "https://placehold.co/400x400/ff69b4/FFF?text=Sakura+Portal+Layer+3", text: "Wrap the upper structural components using full block Cherry Blossom Leaves paths." }
+                ]
+            },
+            "modern_mansion": {
+                name: "🏡 Modern Quartz Luxury Starter Mansion", category: "house",
+                packUrl: "https://raw.githubusercontent.com/iyong_username/iyong_repo/main/packs/modern_mansion.mcpack",
+                materials: [{ name: "Smooth Quartz Block", count: 128 }, { name: "Gray Stained Glass Pane", count: 32 }, { name: "Oak Wood Planks", count: 64 }],
+                steps: [
+                    { img: "https://placehold.co/400x400/1e293b/FFF?text=Mansion+Layer+1", text: "Lay down the outer perimeter foundations using Smooth Quartz Blocks (Dimensions: 10x12 blocks)." },
+                    { img: "https://placehold.co/400x400/334155/FFF?text=Mansion+Layer+2", text: "Raise walls up to 4 blocks total height leaving open segments empty for glass fittings." },
+                    { img: "https://placehold.co/400x400/475569/FFF?text=Mansion+Layer+3", text: "Fit window panes and cap structural ceilings flatly using Quartz Slabs." }
+                ]
+            },
+            "survival_castle": {
+                name: "🏰 Goldenfield Fortress Border Castle", category: "castle",
+                packUrl: "https://raw.githubusercontent.com/iyong_username/iyong_repo/main/packs/survival_castle.mcpack",
+                materials: [{ name: "Stone Bricks", count: 256 }, { name: "Cobblestone Wall Blocks", count: 48 }, { name: "Iron Bars", count: 16 }],
+                steps: [
+                    { img: "https://placehold.co/400x400/7f1d1d/FFF?text=Castle+Layer+1", text: "Erect 4 symmetrical circular defense watchtowers on each boundary corner utilizing Stone Bricks." },
+                    { img: "https://placehold.co/400x400/991b1b/FFF?text=Castle+Layer+2", text: "Connect adjacent towers together by raising thick interior stone defense curtain walls." },
+                    { img: "https://placehold.co/400x400/b91c1c/FFF?text=Castle+Layer+3", text: "Install a working security entry checkpoint drop-gate in the front corridor gap using Iron Bars." }
+                ]
+            },
+            "iron_farm": {
+                name: "🌾 Infinite Fully-Automatic Iron Golem Farm", category: "farm",
+                packUrl: "https://raw.githubusercontent.com/iyong_username/iyong_repo/main/packs/iron_farm.mcpack",
+                materials: [{ name: "Building Blocks", count: 99 }, { name: "Water Bucket", count: 2 }, { name: "Lava Bucket", count: 1 }, { name: "Hopper", count: 4 }, { name: "Bed", count: 3 }],
+                steps: [
+                    { img: "https://placehold.co/400x400/14532d/FFF?text=Iron+Farm+Layer+1", text: "Build an elevated collection platform platform 8 blocks above ground level using solid blocks." },
+                    { img: "https://placehold.co/400x400/166534/FFF?text=Iron+Farm+Layer+2", text: "Place 3 holding beds securely underneath and trap exactly 3 Villager units inside safe blocks." },
+                    { img: "https://placehold.co/400x400/15803d/FFF?text=Iron+Farm+Layer+3", text: "Set flow water streams routing toward a central extraction hopper funnel armed with burning lava signs." }
+                ]
+            },
+            "hidden_door": {
+                name: "⚔️ Ultra-Fast 2x2 Seamless Redstone Piston Flush Door", category: "redstone",
+                packUrl: "https://raw.githubusercontent.com/iyong_username/iyong_repo/main/packs/hidden_door.mcpack",
+                materials: [{ name: "Sticky Piston", count: 12 }, { name: "Redstone Dust", count: 24 }, { name: "Redstone Repeater", count: 4 }, { name: "Lever", count: 1 }],
+                steps: [
+                    { img: "https://placehold.co/400x400/7c2d12/FFF?text=Redstone+Layer+1", text: "Position two columns of facing Sticky Pistons separated by an exact 4-block wide gap space." },
+                    { img: "https://placehold.co/400x400/9a3412/FFF?text=Redstone+Layer+2", text: "Run layout lines of Redstone Dust over structural frame blocks wiring directly behind target pistons." },
+                    { img: "https://placehold.co/400x400/c2410c/FFF?text=Redstone+Layer+3", text: "Insert Repeaters configured onto a precise 2-tick delay to properly sequence flush closing action lines." }
+                ]
+            },
+            "steve_pixel": {
+                name: "🐉 Retro 1:1 Scale Classic Steve Giant Head Statue", category: "pixel",
+                packUrl: "https://raw.githubusercontent.com/iyong_username/iyong_repo/main/packs/steve_pixel.mcpack",
+                materials: [{ name: "Brown Terracotta", count: 64 }, { name: "Cyan Concrete", count: 32 }, { name: "White Wool", count: 16 }],
+                steps: [
+                    { img: "https://placehold.co/400x400/042f2e/FFF?text=Pixel+Layer+1", text: "Assemble a perfect 8x8 foundation grid outline using Brown Terracotta to define hair baselines." },
+                    { img: "https://placehold.co/400x400/115e59/FFF?text=Pixel+Layer+2", text: "Mix custom facial pixels utilizing combinations of White Wool and Light Blue blocks for eye iris lines." }
+                ]
+            }
+            // 💡 FOR 1,000+ SYSTEM LOADING: You can map infinite extra build indexes directly right here below following this identical block format template!
+        };
+
+        let currentBuildKey = "sakura_portal";
+        let currentStepIndex = 0;
+        let selectedCategory = "all";
+
+        // POPULATES DATABASE OPTIONS TO CHOOSE FROM DYNAMICALLY WITH FILTERS
+        function renderBuildOptions() {
+            const selector = document.getElementById("buildSelector");
+            const searchQuery = document.getElementById("searchBar").value.toLowerCase();
+            selector.innerHTML = "";
+
+            let matchingCount = 0;
+
+            for (const [key, build] of Object.entries(buildDatabase)) {
+                const matchesCategory = (selectedCategory === "all" || build.category === selectedCategory);
+                const matchesSearch = build.name.toLowerCase().includes(searchQuery);
+
+                if (matchesCategory && matchesSearch) {
+                    const opt = document.createElement("option");
+                    opt.value = key;
+                    opt.innerText = build.name;
+                    selector.appendChild(opt);
+                    
+                    // Defaults setting to lock first match active on load change triggers
+                    if (matchingCount === 0 && key !== currentBuildKey) {
+                        currentBuildKey = key;
+                    }
+                    matchingCount++;
+                }
+            }
+
+            if (matchingCount === 0) {
+                const opt = document.createElement("option");
+                opt.innerText = "❌ No matching builds found...";
+                selector.appendChild(opt);
+                document.getElementById("autoBuildLink").style.pointerEvents = "none";
+                document.getElementById("autoBuildLink").style.opacity = "0.4";
+            } else {
+                document.getElementById("autoBuildLink").style.pointerEvents = "auto";
+                document.getElementById("autoBuildLink").style.opacity = "1";
+                loadBuild();
+            }
+        }
+
+        function loadBuild() {
+            const selector = document.getElementById("buildSelector");
+            if(selector.value && buildDatabase[selector.value]) {
+                currentBuildKey = selector.value;
+            }
+            currentStepIndex = 0;
+            updateUI();
+            renderMaterials();
+        }
+
+        function updateUI() {
+            const build = buildDatabase[currentBuildKey];
+            if (!build) return;
+            
+            const step = build.steps[currentStepIndex];
+
+            document.getElementById("buildImage").src = step.img;
+            document.getElementById("stepInstruction").innerText = step.text;
+            document.getElementById("stepIndicator").innerText = `Step ${currentStepIndex + 1} / ${build.steps.length}`;
+
+            // Handle button accessibility styles
+            document.getElementById("btnBack").disabled = currentStepIndex === 0;
+            document.getElementById("btnBack").style.opacity = currentStepIndex === 0 ? "0.4" : "1";
+            document.getElementById("btnNext").innerText = currentStepIndex === build.steps.length - 1 ? "✓ Finish" : "Next →";
+
+            // ⚡ COMPRESSED DEEP PROTOCOL LINK INTERACTION 
+            // When clicked on mobile, this safely calls the app launcher protocol to trigger the direct download installer selection prompt inside Minecraft instantly!
+            document.getElementById("autoBuildLink").href = `minecraft://connection.downloadPack?url=${build.packUrl}`;
+        }
+
+        function nextStep() {
+            const build = buildDatabase[currentBuildKey];
+            if (currentStepIndex < build.steps.length - 1) {
+                currentStepIndex++;
+                updateUI();
+            } else {
+                alert("🎉 Brilliant! You completed the step-by-step layer tracking reference manual for this build!");
+            }
+        }
+
+        function prevStep() {
+            if (currentStepIndex > 0) {
+                currentStepIndex--;
+                updateUI();
+            }
+        }
+
+        function filterBuilds() {
+            renderBuildOptions();
+        }
+
+        function filterCategory(cat) {
+            selectedCategory = cat;
+            
+            // Adjust visual highlighting status classes on selected tabs
+            document.querySelectorAll(".cat-btn").forEach(btn => {
+                btn.classList.remove("bg-blue-500", "text-white");
+                btn.classList.add("bg-slate-900", "text-slate-400");
+            });
+            event.target.classList.remove("bg-slate-900", "text-slate-400");
+            event.target.classList.add("bg-blue-500", "text-white");
+
+            renderBuildOptions();
+        }
+
+        function renderMaterials() {
+            const container = document.getElementById("materialContainer");
+            container.innerHTML = "";
+            const build = buildDatabase[currentBuildKey];
+            if (!build) return;
+
+            build.materials.forEach(mat => {
+                const div = document.createElement("div");
+                div.className = "flex justify-between items-center py-2";
+                div.innerHTML = `
+                    <span class="font-medium text-slate-300 flex items-center space-x-2">
+                        <span>🧱</span> <span>${mat.name}</span>
+                    </span>
+                    <span class="bg-slate-900 text-yellow-400 font-mono font-bold px-2 py-0.5 rounded border border-slate-700">
+                        x${mat.count}
+                    </span>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function toggleMaterialList() {
+            const modal = document.getElementById("materialModal");
+            modal.classList.toggle("hidden");
+        }
+
+        // Initialize Core Component Loops on System Boot Initialization
+        window.onload = () => {
+            renderBuildOptions();
+        };
+    </script>
+</body>
+</html>
